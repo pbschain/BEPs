@@ -55,7 +55,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 
 ##### 5.1.1.2 Pre-check
 
-1. Ensure the BEP20 token hasn’t been bound before and there is no related pending mirror request.
+1. Ensure the BEP20 token hasn’t been bound before and is not in mirror pending status.
 2. Ensure the BEP20 symbol follows the BEP2 symbol requirements.
 3. Ensure the equivalent total supply is no greater than Max BEP2 total supply.
 4. Ensure msg.value >= MirrorFee + CrossChainFee and msg.value = N * 10^10
@@ -97,7 +97,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
     | BEP20Decimals     | uint8    | BEP20 decimals         |
     | BEP2Symbol        | bytes32  | BEP2 token symbol      |
     | RefundAmount      | uint256  | The refund amount to sync sender |
-    | ErrorCode         | uint8    | 1. Expired time is passed <br/>2. Issue fee mismatch <br/>3. Already binded <br/>4. Unkown reason |
+    | ErrorCode         | uint8    | 1. Expired time is passed <br/>2. Duplicated BEP2 symbol <br/>3. Already bound <br/>4. Unknown reason |
     1. RLP decode ack package:
     2. If ErrorCode is non-zero, emit bound failure event
     3. If ErrorCode is zero, write the bound pair to TokenHub and emit bound success event
@@ -108,8 +108,8 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 
 | **Param Name**    | **Type** | **Description**        |
 | ----------------- | -------- | ---------------------- |
-| BEP20 Address     | Address  | BEP20 contract address |
-| Expired Time      | uint64   | The deadline to deliver this package on BC |
+| BEP20Addr         | Address  | BEP20 contract address |
+| ExpiredTime       | uint64   | The deadline to deliver this package on BC |
 | msg.value         | uint256  | Sum of cross chain fee and sync fee. The sync fee will be used to cover mint/burn BEP2 token. The left fee will be refund |
 
 ##### 5.1.2.2 Pre-check
@@ -148,7 +148,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
     | SyncSender        | Address  | Sync sender            |
     | BEP20Addr         | Address  | BEP20 token address    |
     | RefundAmount      | uint256  | The refund amount to sync sender |
-    | ErrorCode         | uint8    | 1. Expired time is passed <br/>2. Mint fee mismatch <br/>3. Unkown reason |
+    | ErrorCode         | uint8    | 1. Not bound by mirror <br/>2. Expired time is passed <br/>3. Unknown reason |
 
     1. RLP decode ack package:
     2. If ErrorCode is non-zero, refund RefundAmount BNB to sync sender and emit sync failure event
