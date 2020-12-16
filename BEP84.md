@@ -83,8 +83,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 ##### 5.1.1.4 Handle ack packages
 
 1. Fail ack package: 
-
-    1.RLP decode mirror package.
+    1. RLP decode mirror package.
     2. Refund MirrorFee to mirror sender.
     3. Set the BEP20 pending mirror status to false
 
@@ -140,7 +139,6 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
     1. RLP decode sync total supply package.
     2. Refund SyncFee to users.
 
-
 2. Ack package:
 
     | **Param Name**    | **Type** | **Description**        |
@@ -191,11 +189,11 @@ function updateParam(string calldata key, bytes calldata value)
 ## 5.3 Proposals to Enable New Channels
 After BC and BSC are both upgraded, submit a proposal on BC to add two channels:
 1. Mirror channel
-    1. Channel id: 10 
+    1. Channel id: 4 
     2. Handler address: 0x0000000000000000000000000000000000001008
     3. Is reward from systemReward: false
 2. Sync total supply channel:
-    1. Channel id: 11
+    1. Channel id: 5
     2. Handler address: 0x0000000000000000000000000000000000001008
     3. Is reward from systemReward: false
 
