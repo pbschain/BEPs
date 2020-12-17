@@ -105,7 +105,8 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
     3. If ErrorCode is zero:
         1. Transfer SyncFee to TokenHub
         2. Write the bound pair to TokenHub
-        3. Emit bound success event
+        3. Mark the bep20 token as bound by mirror
+        4. Emit bound success event
     
 #### 5.1.2 Sync
 
@@ -120,9 +121,10 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 ##### 5.1.2.2 Pre-check
 
 1. Ensure the BEP20 token has already been bound.
-2. Ensure msg.value >= SyncFee + CrossChainFee and msg.value = N * 10^10
-3. Ensure the equivalent total supply on BC doesn’t exceed the maximum limit
-4. Ensure expired time is earlier than one day later and no earlier than two minutes later.
+2. Ensure the BEP20 is bound by mirror.
+3. Ensure msg.value >= SyncFee + CrossChainFee and msg.value = N * 10^10
+4. Ensure the equivalent total supply on BC doesn’t exceed the maximum limit
+5. Ensure expired time is earlier than one day later and no earlier than two minutes later.
 
 ##### 5.1.2.3 Core mechanism
 
