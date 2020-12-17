@@ -63,7 +63,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 
 ##### 5.1.1.3 Core Mechanism
 
-1. Transfer msg.value to TokenHub
+1. Transfer relayFee to TokenHub
 2. Mark the BEP20 token is in mirror pending status
 3. RLP Encode mirror package:
 
@@ -71,6 +71,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 | ----------------- | -------- | ---------------------- |
 | MirrorSender      | Address  | Mirror sender          |
 | BEP20Addr         | Address  | BEP20 token address    |
+| BEP20Name         | bytes32  | BEP20 token name       |
 | BEP20Symbol       | bytes32  | BEP20 token symbol     |
 | BEP20Supply       | uint256  | BEP20 total supply     |
 | BEP20Decimals     | uint8    | BEP20 decimals         |
@@ -95,11 +96,16 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
     | BEP20Addr         | Address  | BEP20 token address    |
     | BEP20Decimals     | uint8    | BEP20 decimals         |
     | BEP2Symbol        | bytes32  | BEP2 token symbol      |
-    | RefundAmount      | uint256  | The refund amount to sync sender |
+    | MirrorFee         | uint256  | Mirror fee from sync package |
     | ErrorCode         | uint8    | 1. Expired time is passed <br/>2. Duplicated BEP2 symbol <br/>3. Already bound <br/>4. Unknown reason |
-    1. RLP decode ack package:
-    2. If ErrorCode is non-zero, emit bound failure event
-    3. If ErrorCode is zero, write the bound pair to TokenHub and emit bound success event
+    1. RLP decode ack package.
+    2. If ErrorCode is non-zero:
+        1. Refund MirrorFee to mirror sender
+        2. Emit bound failure event
+    3. If ErrorCode is zero:
+        1. Transfer SyncFee to TokenHub
+        2. Write the bound pair to TokenHub
+        3. Emit bound success event
     
 #### 5.1.2 Sync
 
@@ -109,7 +115,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 | ----------------- | -------- | ---------------------- |
 | BEP20Addr         | Address  | BEP20 contract address |
 | ExpiredTime       | uint64   | The deadline to deliver this package on BC |
-| msg.value         | uint256  | Sum of cross chain fee and sync fee. The sync fee will be used to cover mint/burn BEP2 token. The left fee will be refund |
+| msg.value         | uint256  | Sum of cross chain fee and sync fee. |
 
 ##### 5.1.2.2 Pre-check
 
@@ -120,7 +126,7 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
 
 ##### 5.1.2.3 Core mechanism
 
-1. Transfer msg.value to TokenHub
+1. Transfer relayFee to TokenHub
 2. RLP encode sync total supply package:
 
     | **Param Name**    | **Type** | **Description**        |
@@ -145,12 +151,16 @@ Sync: For a BEP20 token which has been mirrored to BC, anyone can call sync meth
     | ----------------- | -------- | ---------------------- |
     | SyncSender        | Address  | Sync sender            |
     | BEP20Addr         | Address  | BEP20 token address    |
-    | RefundAmount      | uint256  | The refund amount to sync sender |
+    | SyncFee           | uint256  | Sync fee from sync package |
     | ErrorCode         | uint8    | 1. Not bound by mirror <br/>2. Expired time is passed <br/>3. Unknown reason |
 
-    1. RLP decode ack package:
-    2. If ErrorCode is non-zero, refund RefundAmount BNB to sync sender and emit sync failure event
-    3. If ErrorCode is zero, refund RefundAmount(RefundAmount is non-zero) BNB to sync sender and emit sync success event
+    1. RLP decode ack package.
+    2. If ErrorCode is non-zero:
+        1. Refund SyncFee to sync sender
+        2. Emit sync failure event
+    3. If ErrorCode is zero:
+        1. Transfer SyncFee to TokenHub 
+        2. Emit sync success event
 
 ### 5.1.3 Implement Parameter Update Interface
 
@@ -170,9 +180,10 @@ function updateParam(string calldata key, bytes calldata value)
 2. Ensure expiredTime is not passed.
 3. Ensure the bep20 contract is not bound.
 4. Convert BEP20 total supply to the total supply on BC and Ensure the total supply doesn’t exceed the maximum limit of BEP2.
-5. Issue a new BEP2 token, the suffix should be the hash of oracle payload and current channel sequence. Besides, the new BEP2 token doesn’t have an owner. Write BEP20 address and decimals to the BEP2 token attribution table.
-6. Transfer all tokens to the pure-code-controlled-escrow address and unlock mirror fee from peg account to BC fee pool, so that validators can get these fees.
-7. If all above steps are successful, generate a success ack package. RefundAmount should be zero. Otherwise, generate an ack failure package. RefundAmount should equal the mirror fee.
+5. Issue a new BEP2 token, the suffix should be the hash of oracle payload and current channel sequence. Besides, the new BEP2 token owner will be the pure-code-controlled-escrow address. 
+6. Transfer all tokens to the pure-code-controlled-escrow address and write BEP20 address and decimals to the BEP2 token attribution table.
+7. Unlock mirror fee from peg account to BC fee pool, so that validators can get these fees.
+8. If all above steps are successful, generate a success ack package. The mirrorFee in ack package should equal to the value in sync package. Otherwise, generate an ack failure package.
 
 ### 5.2.2 Sync Total Supply Channel
 
@@ -184,7 +195,7 @@ function updateParam(string calldata key, bytes calldata value)
     2. BSC total supply == BC total supply, nothing to do
     3. BSC total supply > BC total supply, burn BEP2 from the pure-code-controlled-escrow address. 
 5. Unlock sync fee from the pure-code-controlled-escrow address to BC fee pool.
-6. If all above steps are successful, generate a success ack package. RefundAmount should be zero. Otherwise, generate an ack failure package. RefundAmount should equal the sync fee.
+6. If all above steps are successful, generate a success ack package. The mirrorFee in ack package should equal to the value in sync package. Otherwise, generate an ack failure package.
 
 ## 5.3 Proposals to Enable New Channels
 After BC and BSC are both upgraded, submit a proposal on BC to add two channels:
